@@ -91,8 +91,14 @@ save_menu() {
     echo $(whiptail --inputbox "$inputbox" \
         28 39 "" --title "Save mods as name" 3>&1 1>&2 2>&3)
 }
+save_mods() {
+    # inplace library is necessary since piping back to file
+    # only manages to add the last printed line
+    ./save_mods.awk -i inplace modnames.csv "$1" \
+        "${level_mod##*/}" "${gameplay_mods[*]##*/}"
+}
 
-load_menu() {
+setup_csv_list() {
     local modnames=($(awk -F, 'NR!=1 {print $1}' modnames.csv))
     local levelnames=($(awk -F, 'NR!=1 {print $2}' modnames.csv))
 
@@ -101,7 +107,8 @@ load_menu() {
     IFS=, read -a modlists <<< \
         $(awk -F, 'BEGIN {ORS=","} NR!=1 {print $3}' modnames.csv)
 
-    local modsargs=()
+    local -n modsargs=$1
+    modsargs=()
     for index in "${!modnames[@]}"
     do
         local modlist=()
@@ -116,22 +123,20 @@ load_menu() {
         done
         modsargs+=("${modnames["$index"]}" "${shortnames[*]}" OFF)
     done
+}
 
+load_menu() {
+    local modsargsout
+    setup_csv_list modsargsout
     local toload=($(whiptail --clear --title \
-        "Check list example" --radiolist \
-        "Choose user's permissions" 30 60 20 \
-        "${modsargs[@]}" \
+        "Modsets" --radiolist \
+        "Choose modset" 24 64 16 \
+        "${modsargsout[@]}" \
         3>&1 1>&2 2>&3))
 
     echo "$toload"
 }
 
-save_mods() {
-    # inplace library is necessary since piping back to file
-    # only manages to add the last printed line
-    ./save_mods.awk -i inplace modnames.csv "$1" \
-        "${level_mod##*/}" "${gameplay_mods[*]##*/}"
-}
 load_level() {
     local level_mod=$(awk -F, -v loadname="$1" \
         '$1 == loadname {print $2}' modnames.csv)
@@ -151,6 +156,23 @@ load_mods() {
     done
 
     echo "${gameplay_mods[@]}"
+}
+
+delete_menu() {
+    local modsargsout
+    setup_csv_list modsargsout
+    local todelete=($(whiptail --clear --title \
+        "Modsets" --radiolist \
+        "Choose modset" 24 64 16 \
+        "${modsargsout[@]}" \
+        3>&1 1>&2 2>&3))
+
+    echo "$todelete"
+}
+
+delete_modname() {
+    awk -F, -i inplace -v deletename="$1" \
+        '$1 != deletename {print $0}' modnames.csv
 }
 
 menu="main"
@@ -178,6 +200,12 @@ do
                 gameplay_mods=($(load_mods "$loadname"))
             fi
             menu="main";;
+        "delete")
+            deletename=$(delete_menu)
+            if [[ -n "$deletename" ]]; then
+                delete_modname "$deletename"
+            fi
+            menu="main";;
         "exit")
             menu=""
             gzdoom -file "$level_mod" "${gameplay_mods[@]}"
@@ -185,7 +213,6 @@ do
 
     esac
 done
-
 
 # gameplay_mods=($(folder_checkview ~/.config/gzdoom/Gameplay/))
 # 

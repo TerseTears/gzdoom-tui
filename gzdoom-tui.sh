@@ -109,11 +109,25 @@ save_menu() {
     echo "$savename"
 }
 save_mods() {
-    # inplace library is necessary since piping back to file
-    # only manages to add the last printed line
-    # TODO just use awk directly here
-    ./save_mods.awk -i inplace modnames.csv "$1" \
-        "${level_mod##*/}" "${gameplay_mods[*]##*/}"
+    awk -i inplace -v modname="$1" -v level="${level_mod##*/}" \
+        -v mods="${gameplay_mods[*]##*/}" \
+        'BEGIN {
+            FS=","
+            OFS=","
+            namepresent=0
+            if($1 == modname) namepresent=1
+        }
+
+        NR!=1 {allrows[$1] = $2 OFS $3}
+
+        ENDFILE {
+            if(!namepresent) {
+                allrows[modname] = level OFS mods
+            }
+            PROCINFO["sorted_in"] = "@ind_str_asc"
+            print "modname" OFS "level" OFS "mods"
+            for (row in allrows) print row, allrows[row]
+            }' modnames.csv
 }
 
 setup_csv_list() {
@@ -190,6 +204,8 @@ delete_menu() {
 }
 
 delete_modname() {
+    # inplace library is necessary since piping back to file
+    # only manages to add the last printed line
     awk -F, -i inplace -v deletename="$1" \
         '$1 != deletename {print $0}' modnames.csv
 }
@@ -231,9 +247,3 @@ do
             ;;
     esac
 done
-
-# gameplay_mods=($(folder_checkview ~/.config/gzdoom/Gameplay/))
-# 
-# level_mod=($(folder_radview ~/.config/gzdoom/Levels/))
-# 
-# gzdoom -file "${gameplay_mods[@]}" "$level_mod"

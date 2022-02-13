@@ -18,101 +18,121 @@ title=white,gray
 window=,blue
 '
 
+# TODO use own program directory
 ! [[ -e "modnames.csv" ]] && touch "modnames.csv"
 
 modspath=~/.config/gzdoom/Gameplay/
 levelspath=~/.config/gzdoom/Levels/
 
 return_indices() {
-    local -n selection_array="$1"
-    local -n indices="$2"
-    local return_array=()
+    local -n return_array="$1"
+    local -n selection_array="$2"
+    local -n indices="$3"
+
+    return_array=()
     for index in "${indices[@]}"
     do
         return_array+=("${selection_array["$index"]}")
     done
-    echo "${return_array[@]}"
 }
 
 setup_list() {
-    local -n _files="$1"
+    local -n ret_file_args="$1"
+    local -n _files="$2"
+
     local _file_names=("${_files[@]##*/}")
     local _file_names=("${_file_names[@]%.*}")
 
-    local _file_args=()
+    ret_file_args=()
     for index in "${!_files[@]}"
     do
-        _file_args+=("$index" "${_file_names["$index"]}" OFF)
+        ret_file_args+=("$index" "${_file_names["$index"]}" "OFF" )
     done
-    echo "${_file_args[@]}"
 }
 
 folder_checkview() {
-    local files=("$1"*)
-    local file_args=($(setup_list files))
+    local -n ret_files_selected="$1"
+    local files=("$2"*)
 
-    # separate-output is absolutely essential otherwise whiptail adds quotes around
-    local files_selection=($(whiptail --title "${2^}" --checklist \
-        --separate-output \
-        "Choose $2" 24 48 16 \
-        "${file_args[@]}" 3>&1 1>&2 2>&3))
+    local file_args
+    setup_list file_args files
 
-    local files_selected=($(return_indices files files_selection))
-    echo "${files_selected[@]}"
-    }
+    # separate-output is absolutely essential otherwise whiptail adds quotes
+    # around
+    local files_selection
+    mapfile -t files_selection < \
+        <(whiptail --title "${3^}" --checklist --separate-output \
+        "Choose $3" 24 48 16 "${file_args[@]}" 3>&1 1>&2 2>&3)
+
+    return_indices ret_files_selected files files_selection
+}
 
 folder_radview() {
     local files=("$1"*)
-    local file_args=($(setup_list files))
+    local file_args
+    setup_list file_args files
 
-    local file_selection=($(whiptail --title "${2^}" --radiolist \
-        "Choose $2" 24 48 16 \
-        "${file_args[@]}" 3>&1 1>&2 2>&3))
+    local file_selection
+    file_selection=$(whiptail --title "${2^}" --radiolist \
+        "Choose $2" 24 48 16 "${file_args[@]}" 3>&1 1>&2 2>&3)
 
-    ! [[ -z "$file_selection" ]] && echo "${files["$file_selection"]}"
-    }
+    [[ -n "$file_selection" ]] && echo "${files["$file_selection"]}"
+}
 
 main_menu() {
-    local modcount=$(echo "Number of Loaded Mods:" "${#gameplay_mods[@]}")
-    echo $(whiptail --title "GZDoom TUI" --backtitle "$modcount"\
-    --menu "Choose option" 16 48 8 \
+    local modcount
+    modcount="Number of Loaded Mods: ${#gameplay_mods[@]}"
+
+    local menu
+    menu="$(whiptail --title "GZDoom TUI" --backtitle "$modcount"\
+        --menu "Choose option" 16 48 8 \
         "gameplay" "Choose gameplay mods" \
         "level" "Choose level mod" \
         "save" "Save current selection"\
         "load" "Load selection"\
         "delete" "Delete mods list name"\
         "exit" "Exit and run" \
-         3>&1 1>&2 2>&3)
+        3>&1 1>&2 2>&3)"
+
+    echo "$menu"
 }
 
 save_menu() {
-    local inputbox=$(echo -e "Gameplay mods:\n\n""${gameplay_mods[@]##*/}\n\n"\
+    local inputbox
+    inputbox=$(echo -e "Gameplay mods:\n\n""${gameplay_mods[*]##*/}\n\n"\
     "Level:" "${level_mod##*/}")
-    echo $(whiptail --inputbox "$inputbox" \
-        28 39 "" --title "Save mods as name" 3>&1 1>&2 2>&3)
+
+    local savename
+    savename=$(whiptail --inputbox "$inputbox" \
+        24 40 "" --title "Save mods as name" 3>&1 1>&2 2>&3)
+
+    echo "$savename"
 }
 save_mods() {
     # inplace library is necessary since piping back to file
     # only manages to add the last printed line
+    # TODO just use awk directly here
     ./save_mods.awk -i inplace modnames.csv "$1" \
         "${level_mod##*/}" "${gameplay_mods[*]##*/}"
 }
 
 setup_csv_list() {
-    local modnames=($(awk -F, 'NR!=1 {print $1}' modnames.csv))
-    local levelnames=($(awk -F, 'NR!=1 {print $2}' modnames.csv))
+    local -n ret_modsargs=$1
+
+    local modnames
+    mapfile -t modnames < <(awk -F, 'NR!=1 {print $1}' modnames.csv)
+    local levelnames
+    mapfile -t levelnames < <(awk -F, 'NR!=1 {print $2}' modnames.csv)
 
     local modlists
+    IFS=, read -r -a modlists <<< \
+        "$(awk -F, 'BEGIN {ORS=","} NR!=1 {print $3}' modnames.csv)"
 
-    IFS=, read -a modlists <<< \
-        $(awk -F, 'BEGIN {ORS=","} NR!=1 {print $3}' modnames.csv)
-
-    local -n modsargs=$1
-    modsargs=()
+    ret_modsargs=()
     for index in "${!modnames[@]}"
     do
         local modlist=()
-        IFS=" " read -a modlist <<< "${modlists["$index"]}"
+        IFS=" " read -r -a modlist <<< "${modlists["$index"]}"
         local levelname="${levelnames["$index"]}"
         levelname="${levelname%.*}"
         local shortnames=("${levelname:0:8}")
@@ -121,51 +141,50 @@ setup_csv_list() {
             mod="${mod%.*}"
             shortnames+=("${mod:0:8}")
         done
-        modsargs+=("${modnames["$index"]}" "${shortnames[*]}" OFF)
+        ret_modsargs+=("${modnames["$index"]}" "${shortnames[*]}" OFF)
     done
 }
 
 load_menu() {
-    local modsargsout
-    setup_csv_list modsargsout
-    local toload=($(whiptail --clear --title \
-        "Modsets" --radiolist \
-        "Choose modset" 24 64 16 \
-        "${modsargsout[@]}" \
-        3>&1 1>&2 2>&3))
+    local modsargs
+    setup_csv_list modsargs
+
+    local toload
+    toload="$(whiptail --clear --title "Load modsets" --radiolist \
+        "Choose modset" 24 64 16 "${modsargs[@]}" 3>&1 1>&2 2>&3)"
 
     echo "$toload"
 }
 
 load_level() {
-    local level_mod=$(awk -F, -v loadname="$1" \
-        '$1 == loadname {print $2}' modnames.csv)
+    local level_mod
+    level_mod="$(awk -F, -v loadname="$1" \
+        '$1 == loadname {print $2}' modnames.csv)"
+    level_mod="${level_mod/#/"$levelspath"}"
 
-    local level_mod="${level_mod/#/"$levelspath"}"
     echo "$level_mod"
 }
 
 load_mods() {
-    local modlist=($(awk -F, -v loadname="$1" \
-        '$1 == loadname {print $3}' modnames.csv))
+    local -n ret_gameplay_mods="$1"
+    local modlist
+    IFS=" " read -r -a modlist <<< "$(awk -F, -v loadname="$2" \
+        '$1 == loadname {print $3}' modnames.csv)"
 
-    local gameplay_mods=()
+    ret_gameplay_mods=()
     for mod in "${modlist[@]}"
     do
-        gameplay_mods+=("${mod/#/"$modspath"}")
+        ret_gameplay_mods+=("${mod/#/"$modspath"}")
     done
-
-    echo "${gameplay_mods[@]}"
 }
 
 delete_menu() {
     local modsargsout
     setup_csv_list modsargsout
-    local todelete=($(whiptail --clear --title \
-        "Modsets" --radiolist \
-        "Choose modset" 24 64 16 \
-        "${modsargsout[@]}" \
-        3>&1 1>&2 2>&3))
+
+    local todelete
+    todelete="$(whiptail --clear --title "Delete modset name" --radiolist \
+        "Choose modset" 24 64 16 "${modsargsout[@]}" 3>&1 1>&2 2>&3)"
 
     echo "$todelete"
 }
@@ -182,7 +201,7 @@ do
         "main")
             menu=$(main_menu);;
         "gameplay")
-            gameplay_mods=($(folder_checkview "$modspath" "gameplay mods"))
+            folder_checkview gameplay_mods "$modspath" "gameplay mods"
             menu="main";;
         "level")
             level_mod=$(folder_radview "$levelspath" "level mod")
@@ -196,8 +215,8 @@ do
         "load")
             loadname=$(load_menu)
             if [[ -n "$loadname" ]]; then
-                level_name=$(load_level "$loadname")
-                gameplay_mods=($(load_mods "$loadname"))
+                level_mod=$(load_level "$loadname")
+                load_mods gameplay_mods "$loadname"
             fi
             menu="main";;
         "delete")
@@ -210,7 +229,6 @@ do
             menu=""
             gzdoom -file "$level_mod" "${gameplay_mods[@]}"
             ;;
-
     esac
 done
 

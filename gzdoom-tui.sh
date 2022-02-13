@@ -2,14 +2,14 @@
 
 export NEWT_COLORS='
 border=yellow,red
-button=yellow,blue
+button=green,blue
 entry=white,blue
 checkbox=white,blue
-actcheckbox=brightred,yellow
+actcheckbox=brightred,green
 compactbutton=lightgray,blue
 listbox=white,blue
-actlistbox=black,yellow
-actsellistbox=white,yellow
+actlistbox=lightgray,brightgreen
+actsellistbox=white,brightgreen
 root=,gray
 roottext=brightcyan,green
 sellistbox=green,brightgreen
@@ -52,9 +52,9 @@ folder_checkview() {
     local file_args=($(setup_list files))
 
     # separate-output is absolutely essential otherwise whiptail adds quotes around
-    local files_selection=($(whiptail --title "Check list example" --checklist \
+    local files_selection=($(whiptail --title "${2^}" --checklist \
         --separate-output \
-        "Choose user's permissions" 20 78 20 \
+        "Choose $2" 24 48 16 \
         "${file_args[@]}" 3>&1 1>&2 2>&3))
 
     local files_selected=($(return_indices files files_selection))
@@ -65,8 +65,8 @@ folder_radview() {
     local files=("$1"*)
     local file_args=($(setup_list files))
 
-    local file_selection=($(whiptail --title "Check list example" --radiolist \
-        "Choose user's permissions" 20 78 20 \
+    local file_selection=($(whiptail --title "${2^}" --radiolist \
+        "Choose $2" 24 48 16 \
         "${file_args[@]}" 3>&1 1>&2 2>&3))
 
     ! [[ -z "$file_selection" ]] && echo "${files["$file_selection"]}"
@@ -75,11 +75,12 @@ folder_radview() {
 main_menu() {
     local modcount=$(echo "Number of Loaded Mods:" "${#gameplay_mods[@]}")
     echo $(whiptail --title "GZDoom TUI" --backtitle "$modcount"\
-    --menu "Choose option" 20 58 12 \
+    --menu "Choose option" 16 48 8 \
         "gameplay" "Choose gameplay mods" \
         "level" "Choose level mod" \
         "save" "Save current selection"\
         "load" "Load selection"\
+        "delete" "Delete mods list name"\
         "exit" "Exit and run" \
          3>&1 1>&2 2>&3)
 }
@@ -159,10 +160,10 @@ do
         "main")
             menu=$(main_menu);;
         "gameplay")
-            gameplay_mods=($(folder_checkview "$modspath"))
+            gameplay_mods=($(folder_checkview "$modspath" "gameplay mods"))
             menu="main";;
         "level")
-            level_mod=$(folder_radview "$levelspath")
+            level_mod=$(folder_radview "$levelspath" "level mod")
             menu="main";;
         "save")
             savename=$(save_menu)

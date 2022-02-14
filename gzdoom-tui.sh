@@ -28,8 +28,17 @@ title=white,gray
 window=,blue
 '
 
+if [[ -n "$XDG_DATA_HOME" ]]; then
+    modnames_csv="$XDG_DATA_HOME/gzdoom-tui/modnames.csv"
+else
+    modnames_csv="$HOME/.local/share/gzdoom-tui/modnames.csv"
+fi
+
 # TODO use own program directory
-! [[ -e "modnames.csv" ]] && touch "modnames.csv"
+if ! [[ -e "$modnames_csv" ]]; then
+    mkdir -p "${modnames_csv%/*}" && touch "$modnames_csv"
+fi
+
 
 modspath=~/.config/gzdoom/Gameplay/
 levelspath=~/.config/gzdoom/Levels/
@@ -137,20 +146,20 @@ save_mods() {
             PROCINFO["sorted_in"] = "@ind_str_asc"
             print "modname" OFS "level" OFS "mods"
             for (row in allrows) print row, allrows[row]
-            }' modnames.csv
+            }' "$modnames_csv"
 }
 
 setup_csv_list() {
     local -n ret_modsargs=$1
 
     local modnames
-    mapfile -t modnames < <(awk -F, 'NR!=1 {print $1}' modnames.csv)
+    mapfile -t modnames < <(awk -F, 'NR!=1 {print $1}' "$modnames_csv")
     local levelnames
-    mapfile -t levelnames < <(awk -F, 'NR!=1 {print $2}' modnames.csv)
+    mapfile -t levelnames < <(awk -F, 'NR!=1 {print $2}' "$modnames_csv")
 
     local modlists
     IFS=, read -r -a modlists <<< \
-        "$(awk -F, 'BEGIN {ORS=","} NR!=1 {print $3}' modnames.csv)"
+        "$(awk -F, 'BEGIN {ORS=","} NR!=1 {print $3}' "$modnames_csv")"
 
     ret_modsargs=()
     for index in "${!modnames[@]}"
@@ -183,7 +192,7 @@ load_menu() {
 load_level() {
     local level_mod
     level_mod="$(awk -F, -v loadname="$1" \
-        '$1 == loadname {print $2}' modnames.csv)"
+        '$1 == loadname {print $2}' "$modnames_csv")"
     level_mod="${level_mod/#/"$levelspath"}"
 
     echo "$level_mod"
@@ -193,7 +202,7 @@ load_mods() {
     local -n ret_gameplay_mods="$1"
     local modlist
     IFS=" " read -r -a modlist <<< "$(awk -F, -v loadname="$2" \
-        '$1 == loadname {print $3}' modnames.csv)"
+        '$1 == loadname {print $3}' "$modnames_csv")"
 
     ret_gameplay_mods=()
     for mod in "${modlist[@]}"
@@ -217,7 +226,7 @@ delete_modname() {
     # inplace library is necessary since piping back to file
     # only manages to add the last printed line
     awk -F, -i inplace -v deletename="$1" \
-        '$1 != deletename {print $0}' modnames.csv
+        '$1 != deletename {print $0}' "$modnames_csv"
 }
 
 menu="main"

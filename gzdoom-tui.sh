@@ -193,7 +193,11 @@ load_level() {
     local level_mod
     level_mod="$(awk -F, -v loadname="$1" \
         '$1 == loadname {print $2}' "$modnames_csv")"
-    level_mod="${level_mod/#/"$levelspath"}"
+
+    # level mod may be empty
+    if [[ -n "$level_mod" ]]; then
+        level_mod="${level_mod/#/"$levelspath"}"
+    fi
 
     echo "$level_mod"
 }

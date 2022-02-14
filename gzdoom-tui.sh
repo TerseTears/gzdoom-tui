@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 
+if [[ "$BASH_VERSINFO" -lt 4 ]]; then
+    echo "at least bash 4.x is required"
+    exit 1
+fi
+
+if ! [[ -x "$(command -v gawk)" ]]; then
+    echo "gawk (gnu awk) is required."
+    exit 1
+fi
+
 export NEWT_COLORS='
 border=yellow,red
 button=green,blue

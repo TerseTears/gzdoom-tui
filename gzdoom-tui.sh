@@ -28,20 +28,35 @@ title=white,gray
 window=,blue
 '
 
+# data file
 if [[ -n "$XDG_DATA_HOME" ]]; then
     modnames_csv="$XDG_DATA_HOME/gzdoom-tui/modnames.csv"
 else
     modnames_csv="$HOME/.local/share/gzdoom-tui/modnames.csv"
 fi
 
-# TODO use own program directory
+## default data file
 if ! [[ -e "$modnames_csv" ]]; then
     mkdir -p "${modnames_csv%/*}" && touch "$modnames_csv"
 fi
 
+# config file
+if [[ -n "$XDG_CONFIG_HOME" ]]; then
+    config_conf="$XDG_CONFIG_HOME/gzdoom-tui/gzdoom-tui.conf"
+else
+    config_conf="$HOME/.config/gzdoom-tui/gzdoom-tui.conf"
+fi
 
-modspath=~/.config/gzdoom/Gameplay/
-levelspath=~/.config/gzdoom/Levels/
+## default config file
+if ! [[ -e "$config_conf" ]]; then
+    mkdir -p "${config_conf%/*}" && touch "$config_conf"
+    cat << EOF > "$config_conf"
+modspath="$HOME/.config/gzdoom/Gameplay/"
+levelspath="$HOME/.config/gzdoom/Levels/"
+EOF
+fi
+
+source "$config_conf"
 
 return_indices() {
     local -n return_array="$1"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [[ "$BASH_VERSINFO" -lt 4 ]]; then
+if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
     echo "at least bash 4.x is required"
     exit 1
 fi
@@ -58,14 +58,14 @@ fi
 
 source "$config_conf"
 
+# functions
 return_indices() {
     local -n return_array="$1"
     local -n selection_array="$2"
     local -n indices="$3"
 
     return_array=()
-    for index in "${indices[@]}"
-    do
+    for index in "${indices[@]}"; do
         return_array+=("${selection_array["$index"]}")
     done
 }
@@ -78,8 +78,7 @@ setup_list() {
     local _file_names=("${_file_names[@]%.*}")
 
     ret_file_args=()
-    for index in "${!_files[@]}"
-    do
+    for index in "${!_files[@]}"; do
         ret_file_args+=("$index" "${_file_names["$index"]}" "OFF" )
     done
 }
@@ -177,15 +176,13 @@ setup_csv_list() {
         "$(awk -F, 'BEGIN {ORS=","} NR!=1 {print $3}' "$modnames_csv")"
 
     ret_modsargs=()
-    for index in "${!modnames[@]}"
-    do
+    for index in "${!modnames[@]}"; do
         local modlist=()
         IFS=" " read -r -a modlist <<< "${modlists["$index"]}"
         local levelname="${levelnames["$index"]}"
         levelname="${levelname%.*}"
         local shortnames=("${levelname:0:8}")
-        for mod in "${modlist[@]}"
-        do
+        for mod in "${modlist[@]}"; do
             mod="${mod%.*}"
             shortnames+=("${mod:0:8}")
         done
@@ -224,8 +221,7 @@ load_mods() {
         '$1 == loadname {print $3}' "$modnames_csv")"
 
     ret_gameplay_mods=()
-    for mod in "${modlist[@]}"
-    do
+    for mod in "${modlist[@]}"; do
         ret_gameplay_mods+=("${mod/#/"$modspath"}")
     done
 }
@@ -248,6 +244,7 @@ delete_modname() {
         '$1 != deletename {print $0}' "$modnames_csv"
 }
 
+# main loop
 menu="main"
 while [[ -n "$menu" ]]
 do

@@ -20,3 +20,13 @@ where the `level` mods are. Both can be written in a single file that is to be
 sourced by `bash` located at either `XDG_CONFIG_HOME/gzdoom-tui` or
 `~/.config/gzdoom-tui`. Both configuration values default to `~/.config/gzdoom`.
 After the first run, the file can be edited for the desired values as well.
+
+## Limitations
+
+* Mod order is always fixed (alphabetically) and not affected by selection order
+(`whiptail` limitation).
+* Relies on `gzdoom`'s own graphical interface for selection of `iwad`s.
+
+## Alternatives
+
+* [twad](https://github.com/zmnpl/twad) with more features written in `golang`.

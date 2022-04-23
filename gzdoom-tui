@@ -95,7 +95,7 @@ folder_checkview() {
     local files_selection
     mapfile -t files_selection < \
         <(whiptail --title "${3^}" --checklist --separate-output \
-        "Choose $3 (press space)" 24 48 16 "${file_args[@]}" 3>&1 1>&2 2>&3)
+        "Choose $3 (press SPACE)" 24 48 16 "${file_args[@]}" 3>&1 1>&2 2>&3)
 
     return_indices ret_files_selected files files_selection
 }
@@ -107,7 +107,7 @@ folder_radview() {
 
     local file_selection
     file_selection=$(whiptail --title "${2^}" --radiolist \
-        "Choose $2 (press space)" 24 48 16 "${file_args[@]}" 3>&1 1>&2 2>&3)
+        "Choose $2 (press SPACE)" 24 48 16 "${file_args[@]}" 3>&1 1>&2 2>&3)
 
     [[ -n "$file_selection" ]] && echo "${files["$file_selection"]}"
 }
@@ -118,7 +118,7 @@ main_menu() {
 
     local menu
     menu="$(whiptail --title "GZDoom TUI" --backtitle "$modcount"\
-        --menu "Choose option (press space)" 16 48 8 \
+        --menu "Choose option (press ENTER)" 16 48 8 \
         "gameplay" "Choose gameplay mods" \
         "level" "Choose level mod" \
         "save" "Save current selection"\
@@ -196,7 +196,7 @@ load_menu() {
 
     local toload
     toload="$(whiptail --clear --title "Load modsets" --radiolist \
-        "Choose modset (press space)" 24 64 16 "${modsargs[@]}" 3>&1 1>&2 2>&3)"
+        "Choose modset (press SPACE)" 24 64 16 "${modsargs[@]}" 3>&1 1>&2 2>&3)"
 
     echo "$toload"
 }
@@ -232,7 +232,7 @@ delete_menu() {
 
     local todelete
     todelete="$(whiptail --clear --title "Delete modset name" --radiolist \
-        "Choose modset (press space)" 24 64 16 "${modsargsout[@]}" \
+        "Choose modset (press SPACE)" 24 64 16 "${modsargsout[@]}" \
         3>&1 1>&2 2>&3)"
 
     echo "$todelete"

@@ -279,7 +279,7 @@ do
             menu="main";;
         "exit")
             menu=""
-            gzdoom -file  "${gameplay_mods[@]}" "$level_mod"
+            gzdoom -file "$level_mod" "${gameplay_mods[@]}"
             ;;
     esac
 done
